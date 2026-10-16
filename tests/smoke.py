@@ -279,6 +279,19 @@ c.post("/api/auth/register", json={"email": "h@x.com", "password": "attackerpass
 assert c.post("/api/auth/login", json={"email": "h@x.com", "password": "attackerpass1"}).status_code == 200
 google({"sub": "g-h", "email": "h@x.com", "email_verified": True, "name": "Owner"})
 assert c.post("/api/auth/login", json={"email": "h@x.com", "password": "attackerpass1"}).status_code == 401, "attacker's password revoked"
+# invite-only sign-ups (protects a public deployment's API credit)
+config.SIGNUP_CODE = "s3cret-invite-code"
+assert c.get("/api/auth/config").json()["invite_required"] is True
+assert c.post("/api/auth/register", json={"email": "i1@x.com", "password": P}).status_code == 403, "no code"
+assert c.post("/api/auth/register", json={"email": "i1@x.com", "password": P, "invite": "wrong"}).status_code == 403
+assert c.post("/api/auth/register", json={"email": "i1@x.com", "password": P, "invite": "s3cret-invite-code"}).status_code == 200
+assert "error=" in google({"sub": "g-new", "email": "brandnew@x.com", "email_verified": True, "name": "N"}), "Google cannot bypass the code"
+assert "token=" in google(g), "an existing Google-linked account can still sign in"
+codes = [c.post("/api/auth/register", json={"email": "z@x.com", "password": P, "invite": f"guess{i}"}).status_code for i in range(25)]
+assert 429 in codes, "guessing the invite code is rate limited"
+config.SIGNUP_CODE = ""
+assert c.get("/api/auth/config").json()["invite_required"] is False
+
 print("accounts: verification, reset, Google OK")
 
 # ---- durable job queue ----

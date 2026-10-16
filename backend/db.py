@@ -15,8 +15,10 @@ def init():
         from pgvector.psycopg import register_vector
         from psycopg.rows import dict_row
         from psycopg_pool import ConnectionPool
+        # check=...: validate a connection before handing it out, so serverless Postgres that suspends when idle
+        # (Neon, Supabase) cannot leave us with dead pooled connections
         _pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=10, kwargs={"row_factory": dict_row},
-                               configure=register_vector, open=True)
+                               configure=register_vector, check=ConnectionPool.check_connection, open=True)
         _pool.wait()
     else:
         c = _sqlite()

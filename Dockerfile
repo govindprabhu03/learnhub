@@ -20,7 +20,7 @@ COPY backend ./backend
 COPY frontend ./frontend
 
 # run as a non-root user; /app/data holds uploads (and the SQLite file / signing secret when not using SECRET_KEY / Postgres)
-RUN useradd --create-home --uid 10001 app && mkdir -p /app/data && chown -R app /app/data /opt/models
+RUN useradd --create-home --uid 1000 app && mkdir -p /app/data && chown -R app /app/data /opt/models
 USER app
 VOLUME /app/data
 EXPOSE 8100

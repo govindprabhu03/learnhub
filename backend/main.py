@@ -76,6 +76,7 @@ class Login(BaseModel):
 class Cred(Login):
     password: str = Field(min_length=8, max_length=128)
     name: str = Field(default="", max_length=60)
+    invite: str = Field(default="", max_length=100)
 
 
 class EmailIn(BaseModel):
@@ -118,11 +119,14 @@ def _send_reset(u):
 
 @app.get("/api/auth/config")
 def auth_config():
-    return {"google": oauth.configured(), "verification_required": config.REQUIRE_VERIFIED}
+    return {"google": oauth.configured(), "verification_required": config.REQUIRE_VERIFIED, "invite_required": bool(config.SIGNUP_CODE)}
 
 
 @app.post("/api/auth/register")
 def register(b: Cred, bg: BackgroundTasks):
+    if config.SIGNUP_CODE and not hmac.compare_digest(b.invite.strip().encode(), config.SIGNUP_CODE.encode()):
+        limit("all", "invite-fail", n=20, per=600)  # slows guessing the code (and never reveals whether an email exists)
+        raise HTTPException(403, "Sign-ups are invite-only. Enter the invite code you were given.")
     email = b.email.strip().lower()
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
         raise HTTPException(400, "Enter a valid email")
@@ -222,6 +226,8 @@ def google_callback(request: Request, code: str = "", state: str = "", error: st
             db.run("UPDATE users SET pw=? WHERE id=?", "!" + secrets.token_hex(16), u["id"])
         db.run("UPDATE users SET google_sub=?, email_verified=1 WHERE id=?", sub, u["id"])
     else:
+        if config.SIGNUP_CODE:  # a brand-new account via Google would bypass the invite code
+            return _bounce("Sign-ups are invite-only. Create your account with the invite code first; Google can be used afterwards.")
         db.run("INSERT INTO users(email, name, pw, email_verified, google_sub) VALUES(?,?,?,?,?)",
                email, (info.get("name") or email.split("@")[0])[:60], "!" + secrets.token_hex(16), 1, sub)
     u = db.one("SELECT * FROM users WHERE google_sub=?", sub)

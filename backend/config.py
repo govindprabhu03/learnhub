@@ -52,6 +52,7 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", "") or SMTP_USER or "noreply@learnhub.local"
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+SIGNUP_CODE = os.environ.get("SIGNUP_CODE", "")  # set -> registering needs this invite code (protects a public site's API credit)
 _rv = os.environ.get("REQUIRE_VERIFIED_EMAIL", "auto").lower()  # auto: enforce only when real email can be sent
 REQUIRE_VERIFIED = bool(SMTP_HOST) if _rv == "auto" else _rv in ("1", "true", "yes")
 DAILY_GOAL = 20
