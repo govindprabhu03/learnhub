@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+pypdf
+anthropic
+httpx
+fastembed
+numpy
+sqlalchemy
+alembic
+psycopg[binary,pool]
+pgvector
+sentry-sdk[fastapi]
+rapidocr-onnxruntime   # OCR for scanned PDFs (local, ONNX; models are bundled in the wheel)
+pypdfium2              # renders PDF pages to images for OCR

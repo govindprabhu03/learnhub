@@ -1,0 +1,58 @@
+# docker compose up --build            ->  http://localhost:8100
+# docker compose up --build --scale worker=3   (more document-processing capacity)
+# Settings come from a .env file next to this one (see .env.example). SECRET_KEY is required.
+x-app: &app
+  build: .
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  environment:
+    DATABASE_URL: postgresql://learnhub:${POSTGRES_PASSWORD:-learnhub}@db:5432/learnhub
+    WORKER_MODE: external            # the web container only enqueues; the worker container(s) process documents
+    ENVIRONMENT: production
+    SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (any long random string; all containers must share it)}
+    APP_URL: ${APP_URL:-http://localhost:8100}
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    LEARNHUB_MODEL: ${LEARNHUB_MODEL:-claude-haiku-4-5-20251001}
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_USER: ${SMTP_USER:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_FROM: ${SMTP_FROM:-}
+    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  volumes:
+    - appdata:/app/data              # uploaded PDFs, shared by web and worker
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: learnhub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-learnhub}
+      POSTGRES_DB: learnhub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learnhub -d learnhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    <<: *app
+    ports:
+      - "8100:8100"
+
+  worker:
+    <<: *app
+    command: python backend/worker.py
+    healthcheck:
+      disable: true
+
+volumes:
+  pgdata:
+  appdata:

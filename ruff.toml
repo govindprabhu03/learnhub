@@ -1,0 +1,7 @@
+line-length = 140
+
+[lint]
+select = ["E4", "E9", "F"]  # import hygiene, syntax errors, unused/undefined names
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]  # tests put backend/ on sys.path before importing it

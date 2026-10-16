@@ -1,0 +1,4 @@
+# tests + lint (pip install -r requirements.txt -r requirements-dev.txt)
+pymupdf    # builds the test PDFs
+ruff
+pgserver   # zero-install local Postgres+pgvector: DATABASE_URL=embedded, and TEST_PG=1 python tests/smoke.py
